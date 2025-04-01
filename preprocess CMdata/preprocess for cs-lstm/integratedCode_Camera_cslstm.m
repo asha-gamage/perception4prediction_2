@@ -23,12 +23,10 @@ clear;
 
 % Define possible values for each variable
 Speeds = 5; %, 10, 15]; % Add more speeds if necessary
-% Roads = {'US101', 'Straight', 'HW'}; %, 'Curve'};
-Roads = {'HW'}; %, 'Curve'};
-Dirs = {'Right', 'Left'};
-Params = {'Range', 'FoV'};
-% Scenarios = {'Infront of Ego', 'Infront of Lead'};
-Scenarios = {''};
+Roads = {'US101'}; %, 'Straight', 'HW', 'Curve'};
+Dirs = {'Right', 'Left', 'Decel'};
+Params = {'Range', 'FoV', 'Resolution'};
+Scenarios = {'Infront of Ego', 'Infront of Lead', 'Deceleration'};
 Data_imputes = {false, true};
 
 for Speed = Speeds
@@ -84,25 +82,70 @@ for Speed = Speeds
                             case 'FoV'
                                 unit = 'deg';
                                 range_vals = 30:30:180; % FoV values for 'FoV' Param
+                            case 'Resolution'
+                                unit = 'px';
+                                range_vals = ["640x480","1280x720","1920x1080","2560x1440","3840x2160"]; % pixels for 'Resolution' Param
                         end
                         
                         % Create an Excel file to record the number of detections
-                        filename = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\', rd, '\cameraData\manoeuvre_', folder, '\', Param{1}, '\relVel_', Spd, 'kph\matFiles\', Scenario{1},dFolder,'_No.of Detections.xlsx'];
-                        writecell(names, filename);
-                        
+                        if Scenario ~= "Deceleration"
+                            path = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\', rd, '\cameraData\manoeuvre_', folder, '\', Param{1}, '\relVel_', Spd, 'kph\matFiles\', Scenario{1},dFolder];                            
+                        else
+                            folder = 'Decel';
+                            path = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\', rd, '\cameraData\manoeuvre_', folder, '\', Param{1}, '\matFiles\', Scenario{1},dFolder];
+                        end
+                        filename = [path,'_No.of Detections.xlsx' ];
+                        ensureFolderExists(path);
+                        createFileIfNotExists(filename);                        
+                        try
+                            writecell(names, filename);
+                        catch ME
+                            disp(['Failed to write to the file: ', filename]);
+                            disp(['Error message: ', ME.message]);
+                        end
+                                        
                         % Iterate through range values (for example, Range or FoV values)
                         for a = range_vals
-                            if Param{1}=="Range"
-                                if Road{1} =="US101"
-                                    readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_', Param{1}, '_', num2str(a), '.erg'];
-                                else
-                                    readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_', Param{1}, '_', num2str(a), '.erg'];
+                            if Scenario ~= "Deceleration"
+                                if Param{1}=="Range"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_', Param{1}, '_', num2str(a), '.erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_', Param{1}, '_', num2str(a), '.erg'];
+                                    end
+                                elseif Param{1}=="FoV"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_HorFoV (',num2str(a),').erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_HorFoV (',num2str(a),').erg'];
+                                    end
+                                elseif Param{1}=="Resolution"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_Res_',char(a),'.erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_Res_',char(a),'cm.erg'];
+                                    end
                                 end
-                            elseif Param{1}=="FoV"
-                                if Road{1} =="US101"
-                                    readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_HorFoV (',num2str(a),').erg'];
-                                else
-                                    readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_HorFoV (',num2str(a),').erg'];
+                            elseif Scenario == "Deceleration"
+                                folder = 'Decel';
+                                if Param{1}=="Range"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\', Scenario{1},'\Camera\', Param{1}, '\Scenario_', Road{1}, '_', Scenario{1},'_', Param{1}, '_', num2str(a), '.erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_', Param{1}, '_', num2str(a), '.erg'];
+                                    end
+                                elseif Param{1}=="FoV"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\', Scenario{1},'\Camera\', Param{1}, '\Scenario_', Road{1}, '_', Scenario{1},'_HorFoV (',num2str(a),').erg'];                                        
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_HorFoV (',num2str(a),').erg'];
+                                    end
+                                elseif Param{1}=="Resolution"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\', Scenario{1},'\Camera\', Param{1}, '\Scenario_', Road{1}, '_', Scenario{1},'_Res_',char(a),'.erg']; 
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_Res_',char(a),'cm.erg'];
+                                    end
                                 end
                             end
                             
@@ -338,7 +381,11 @@ for Speed = Speeds
                                     legend ('Camera detections','GroundTruth','Location','northeast');
                                     
                                     % Define path for saving the figures
-                                    FolderName = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
+                                    if Scenario ~= "Deceleration"
+                                        FolderName = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];                                        
+                                    elseif Scenario == "Deceleration"
+                                        FolderName = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\graphs\', Scenario{1},dFolder];                                                                              
+                                    end                                    
                                     %[~, file]  = fileparts(filename);  % Remove extension
                                     saveas(gca, fullfile(FolderName, [Title_1, '.png']) ) % Append
                                     close all;
@@ -355,19 +402,19 @@ for Speed = Speeds
                                     hold on
                                     plot(gTruth_x_filtered,gTruth_y_filtered,'-','LineWidth', 1);
                                     hold off
-                                    ylabel('y coordinate');
-                                    xlabel('x coordinate');
+                                    ylabel('y coordinate', 'FontSize', 17);
+                                    xlabel('x coordinate', 'FontSize', 17);
+                                    % Increase font size of the axis tick labels
+                                    set(gca, 'FontSize', 15);
                                     if TrfID == '0'
-                                        title('Camera Detections Vs Ground-Truths for the Target Car ');
+                                        title({'Camera Detections Vs Ground-Truths', 'for the Target Car '}, 'FontSize', 17, 'FontWeight','Normal');
                                     else
-                                        title(['Camera Detections Vs Ground-Truths for the Surround Car ', TrfID]);
+                                        title([{'Camera Detections Vs Ground-Truths',' for the Surround Car '}, TrfID],'FontSize', 17, 'FontWeight','Normal');
                                     end
                                     grid('on');
-                                    legend ('Camera Detections','Ground-Truth','Location','northeast');
+                                    legend ('Camera Detections','Ground-Truth','Location','northeast', 'FontSize', 14);
                                     
                                     % Define path for saving the figure
-                                    %FolderName = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param,'\relVel_',Spd,'kph\graphs'];
-                                    %[~, file]  = fileparts(filename);  % Remove extension
                                     saveas(gca, fullfile(FolderName, [Title_2, '.png']) ) % Append
                                     close all;
                                 end
@@ -498,15 +545,17 @@ for Speed = Speeds
                             
                             %% Save mat files:
                             %disp('Saving mat files...')
-                            savePath = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\matFiles\', Scenario{1},dFolder,'\',rd,'_',Param{1},'_',num2str(a)];
-                            %     savePath = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\Range\relVel_',Spd,'kph\matFiles\',rd,'_Range_',num2str(a),' occluded'];
-                            save(savePath,'traj','tracks','tracksGndT')
-                                              
-                        end
-                    
+                            if Scenario ~= "Deceleration"
+                                folderPath = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\matFiles\', Scenario{1},dFolder];                                
+                            elseif Scenario == "Deceleration"
+                                folderPath = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\matFiles\', Scenario{1},dFolder];                                
+                            end
+                            ensureFolderExists(folderPath);
+                            savePath = [folderPath,'\',rd,'_',Param{1},'_',num2str(a)];
+                            save(savePath,'traj','tracks','tracksGndT')                                              
+                        end                    
                    
                         %% Script for generating the traj data file for the CS pooling model using CM based ground-truth data
-
                         surCarsgT = [];
                         for t = 1:nVehIds
                             trajTrGT = [10*Time', measuredData{t,2}(2,:)', measuredData{t,2}(1,:)', measuredData{t,2}(3,:)'];% correspond to the Target car (always given traffic name 'T00' in CM)
@@ -529,9 +578,14 @@ for Speed = Speeds
 
                         %% Save mat files:
                         %disp('Saving mat files...')
-                        savePath = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\matFiles\', Scenario{1},dFolder,'\',rd,'_groundTruth'];
-                        % savePath = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\Range\relVel_',Spd,'kph\matFiles\',rd,'_groundTruth occluded'];
-                        save(savePath,'traj','tracks','tracksGndT');
+                        if Scenario ~= "Deceleration"
+                            folderPath = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\matFiles\', Scenario{1},dFolder];                                
+                        elseif Scenario == "Deceleration"
+                            folderPath = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\matFiles\', Scenario{1},dFolder];                                
+                        end
+                        ensureFolderExists(folderPath);                       
+                        savePath = [folderPath,'\',rd,'_groundTruth'];
+                        save(savePath,'traj','tracks','tracksGndT')     
                     end
                 end 
             end
@@ -660,4 +714,29 @@ traj = [ones(size(trajCM,1),1),trajCM]; % Add a Dataset ID as first column as ex
 tracks = tracksCM;
 end
 
+function ensureFolderExists(path)
+    % Check if the folder exists
+    if ~exist(path, 'dir')
+        % If not, create the folder
+        mkdir(path);
+        disp(['Folder created: ', path]);
+    else        
+        disp(['Folder already exists: ', path]);
+    end
+end
+
+function createFileIfNotExists(filePath)
+    % Check if the file exists
+    if exist(filePath, 'file') ~= 2 % If the file does not exist, create an empty cell array and write it to an Excel file
+
+        try % Create a new Excel file (this can also handle the case where Excel is closed)
+            writecell({}, filePath);  % Create an empty Excel file
+            disp(['File created: ', filePath]);
+        catch
+            error('File could not be created: %s', filePath);
+        end
+    else
+        disp(['File already exists: ', filePath]);
+    end
+end
 

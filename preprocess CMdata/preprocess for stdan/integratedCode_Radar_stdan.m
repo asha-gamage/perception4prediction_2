@@ -19,17 +19,16 @@
 % the trajectory prediction model, STDAN
 
 % 30/09/24: Update the script inline with the updates to the CS-LSTM script made in 08/24 to better align the detections with the real traffic objects
+% 24/03/25: Increase the font size of the graphs plotted
 
 close all; % close all the figures
 clear;
 % Define possible values for each variable
 Speeds = 5; %, 10, 15]; % Add more speeds if necessary
-% Roads = {'US101', 'Straight', 'HW'}; %, 'Curve'};
-Roads = {'HW'};
-Dirs = {'Right', 'Left'};
-Params = {'Range', 'FoV'};
-% Scenarios = {'Infront of Ego', 'Infront of Lead'};
-Scenarios = {''};
+Roads = {'US101'}; %, 'Straight', 'HW', 'Curve'};
+Dirs = {'Right', 'Left', 'Decel'};
+Params = {'Range', 'FoV', 'Range Res', 'Angular Res'};
+Scenarios = {'Infront of Ego', 'Infront of Lead', 'Deceleration'};
 Data_imputes = {false, true};
 
 % Iterate through all combinations of Speed, Dir, Road, and Param
@@ -85,27 +84,87 @@ for Speed = Speeds
                             case 'FoV'
                                 unit = 'deg';
                                 range_vals = 30:30:180; % FoV values for 'FoV' Param
+                            case 'Range Res'
+                                unit = 'cm';
+                                range_vals = 20:20:100; % Range Res values for 'Range Res' Param
+                            case 'Angular Res'
+                                unit = 'deg';
+                                range_vals = 2:2:10; % Range Res values for 'Angular Res' Param
                         end
                         
                         % Create an Excel file to record the number of detections
-                        filename = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\', rd, '\radarData\manoeuvre_', folder, '\', Param{1}, '\relVel_', Spd, 'kph\No.of Detections.xlsx'];
-                        writecell(names, filename);
+                        if Scenario ~= "Deceleration"
+                            path  = ['C:\Users\gamage_a\Documents\Python\stdan-master\', rd, '\radarData\manoeuvre_', folder, '\', Param{1}, '\relVel_', Spd, 'kph\'];
+                        else
+                            folder = 'Decel';
+                            path = ['C:\Users\gamage_a\Documents\Python\stdan-master\', rd, '\radarData\manoeuvre_', folder, '\', Param{1}, '\'];
+                        end
+                        filename = [path,'No.of Detections.xlsx' ];
+                        ensureFolderExists(path);
+                        createFileIfNotExists(filename);                        
+                        try
+                            writecell(names, filename);
+                        catch ME
+                            disp(['Failed to write to the file: ', filename]);
+                            disp(['Error message: ', ME.message]);
+                        end
                         
                         % Iterate through range values (for example, Range or FoV values)
                         for a = range_vals
-                            if Param{1}=="Range"
-                                if Road{1} =="US101"
-                                    readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_', Param{1}, '_', num2str(a), '.erg'];
-                                else
-                                    readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_', Param{1}, '_', num2str(a), '.erg'];
+                            if Scenario ~= "Deceleration"
+                                if Param{1}=="Range"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_', Param{1}, '_', num2str(a), '.erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_', Param{1}, '_', num2str(a), '.erg'];
+                                    end
+                                elseif Param{1}=="FoV"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_HorFoV (',num2str(a),').erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_HorFoV (',num2str(a),').erg'];
+                                    end
+                                elseif Param{1}=="Range Res"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_Range_Res_',num2str(a),'cm.erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_Range_Res_',num2str(a),'cm.erg'];
+                                    end
+                                elseif Param{1}=="Angular Res"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_Ang_Res_',num2str(a),'deg.erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_Ang_Res_',num2str(a),'deg.erg'];
+                                    end
                                 end
-                            elseif Param{1}=="FoV"
-                                if Road{1} =="US101"
-                                    readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_HorFoV (',num2str(a),').erg'];
-                                else
-                                    readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_HorFoV (',num2str(a),').erg'];
-                                end
+                            elseif Scenario == "Deceleration"
+                                if Param{1}=="Range"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\',Scenario{1},'\Radar\', Param{1},'\Scenario_', Road{1},'_',Scenario{1},'_', Param{1}, '_', num2str(a), '.erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_', Param{1}, '_', num2str(a), '.erg'];
+                                    end
+                                elseif Param{1}=="FoV"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\',Scenario{1},'\Radar\', Param{1},'\VerFoV@15deg\Scenario_', Road{1},'_',Scenario{1},'_HorFoV (',num2str(a),').erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_HorFoV (',num2str(a),').erg'];
+                                    end
+                                elseif Param{1}=="Range Res"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\', Scenario{1}, '\Radar\', Param{1}, '\Scenario_', Road{1},'_',Scenario{1},'_Range_Res_',num2str(a),'cm.erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_Range_Res_',num2str(a),'cm.erg'];
+                                    end
+                                elseif Param{1}=="Angular Res"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\', Scenario{1}, '\Radar\', Param{1}, '\Scenario_', Road{1}, '_',Scenario{1},'_Ang_Res_',num2str(a),'deg.erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Radar\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_Ang_Res_',num2str(a),'deg.erg'];
+                                    end                              
+                                end                
                             end
+
                             dFile = cmread(readPath);
                             % Read the required data fields from the CM logged results file
                             % Initial time-step removed to allow for radar model's cycle time
@@ -153,7 +212,8 @@ for Speed = Speeds
                             % Create a cell array matrix where the columns are the actual traffic vehicles in the scenario and the rows are the object IDs
                             % assigned to the detected cars by the sensor
                             TrfDet = {};
-                            for i = 1:numTraffic % Here the loop is created assuming all traffic will be detected by the sensor
+%                             for i = 1:numTraffic 
+                            for i = 1:length(detdCars) % Here the loop is created assuming all traffic will be detected by the sensor
                                 Trf_ID = ['Sensor.Radar.Radar1.Obj' num2str(i-1) '.ObjId']; % Auto-generate the common string elements for reading data
                                 for k = 1:length(tt)
                                     % Search for the elements capturing the objIDs and extract the indices of the time frame of detection of a vehicle and
@@ -201,7 +261,8 @@ for Speed = Speeds
                                 end
                             end
                             
-                            for i = 1:numTraffic
+%                             for i = 1:numTraffic
+                            for i = 1:nObjIds % Here the loop is created based on the maximum traffic detected by the radar at any timeframe       
                                 rad_Idx = ['Sensor.Radar.Radar1.Obj' num2str(i-1)]; % Auto-generate the common string elements for reading data
                                 Trf_ID = [rad_Idx '.ObjId'];
                                 meas_X = [rad_Idx '.DistX'];
@@ -271,8 +332,7 @@ for Speed = Speeds
                                                 assignMatrix(logical(TrfDet{i,vehIdx})) = tt{k}.data(logical(TrfDet{i,vehIdx}));
                                                 measuredData{vehIdx,1}(7,:) = assignMatrix;
                                             end
-                                        end
-                                        
+                                        end                                        
                                     end
                                 end
                             end
@@ -303,7 +363,6 @@ for Speed = Speeds
                                             
                                             VrelX = measuredData{j,1}(5,i);
                                             VrelY = measuredData{j,1}(6,i);
-                                            %                     yawAngAbs = abs(yawAng(i));
                                             
                                             V_radX = VrelX*cos(yawAng(i)) + VrelY*sin(yawAng(i)) + ego_velX(i);% VrelY corrected from cos to sin()
                                             V_radY = VrelY*cos(yawAng(i)) + VrelX*sin(yawAng(i)) + ego_velY(i);
@@ -435,7 +494,13 @@ for Speed = Speeds
                                     legend ('Radar detections','GroundTruth','Location','northeast');
                                     
                                     % Define path for saving the figures
-                                    FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
+                                    if Scenario ~= "Deceleration"
+                                        FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
+                                    elseif Scenario == "Deceleration"
+                                        FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\graphs\', Scenario{1},dFolder];                                        
+                                    end
+                                    
+                                    ensureFolderExists(FolderName);
                                     %[~, file]  = fileparts(filename);  % Remove extension
                                     saveas(gca, fullfile(FolderName, [Title_1, '.png']) ) % Append
                                     close all;
@@ -452,18 +517,25 @@ for Speed = Speeds
                                     hold on
                                     plot(gTruth_x_filtered,gTruth_y_filtered,'-','LineWidth', 1);
                                     hold off
-                                    ylabel('y coordinate');
-                                    xlabel('x coordinate');
+                                    ylabel('y coordinate', 'FontSize', 17);
+                                    xlabel('x coordinate', 'FontSize', 17);
+                                    % Increase font size of the axis tick labels
+                                    set(gca, 'FontSize', 15);
                                     if SurID == '0'
-                                        title('Radar Detections Vs Ground-Truths for the Target Car ');
+                                        title({'Radar Detections Vs Ground-Truths','for the Target Car '}, 'FontSize', 17, 'FontWeight','Normal');
                                     else
-                                        title(['Radar Detections Vs Ground-Truths for the Surround Car ', SurID]);
+                                        title([{'Radar Detections Vs Ground-Truths, for the Surround Car '}, SurID], 'FontSize', 17, 'FontWeight','Normal');
                                     end
                                     grid('on');
-                                    legend ('Radar Detections','Ground-Truth','Location','northeast');
+                                    legend ('Radar Detections','Ground-Truth','Location','northeast', 'FontSize', 14);
                                     
                                     % Define path for saving the figure
-                                    FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
+                                    if Scenario ~= "Deceleration"
+                                        FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
+                                    elseif Scenario == "Deceleration"
+                                        FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\graphs\', Scenario{1},dFolder];                                        
+                                    end 
+                                    ensureFolderExists(FolderName);
                                     %[~, file]  = fileparts(filename);  % Remove extension
                                     saveas(gca, fullfile(FolderName, [Title_2, '.png']) ) % Append
                                     close all;
@@ -521,17 +593,23 @@ for Speed = Speeds
                                     hold on
                                     plot(V_GT,'-','LineWidth', 1);
                                     hold off
-                                    ylabel('Velocity');
-                                    xlabel('point');
+                                    ylabel('Velocity','FontSize', 17);
+                                    xlabel('Time (ms)','FontSize', 17);
+                                    set(gca, 'FontSize', 15);
                                     if SurID == '0'
-                                        title('Radar-based Vs Ground-Truths velocity for the Target Car ');
+                                        title({'Radar-based Vs Ground-Truths', 'velocity for the Target Car '},'FontSize', 17, 'FontWeight','Normal');
                                     else
-                                        title(['Radar-based Vs Ground-Truths velocity for the Surround Car ', SurID]);
+                                        title([{'Radar-based Vs Ground-Truths, velocity for the Surround Car '}, SurID],'FontSize', 17, 'FontWeight','Normal');
                                     end
-                                    legend ('Radar Detections','Ground-Truth','Location','northeast');
+                                    legend ('Radar Detections','Ground-Truth','Location','northeast', 'FontSize', 14);
                                     
                                     % Define path for saving the figure
-                                    FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
+                                    if Scenario ~= "Deceleration"
+                                        FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
+                                    elseif Scenario == "Deceleration"
+                                        FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\graphs\', Scenario{1},dFolder];                                        
+                                    end
+                                    ensureFolderExists(FolderName);
                                     %[~, file]  = fileparts(filename);  % Remove extension
                                     saveas(gca, fullfile(FolderName, [Title_3, '.png']) ) % Append
                                     close all;
@@ -551,29 +629,31 @@ for Speed = Speeds
                                     pos = figMetrics.Position;
                                     width = pos(3);
                                     figMetrics.Position = [pos(1)-(maxWidth-width)/2 pos(2) maxWidth pos(4)];
-                                    % plot the radar measurements-based velocity
+                                    % plot the radar measurements-based x acceleration
                                     accelX_radar = subplot(1,2,1);
                                     plot(calcAccX,'.');
                                     hold on
                                     plot(gTruth_AccX_filtered, '.');
                                     hold off
-                                    ylabel(accelX_radar,'X acceleration');
-                                    xlabel(accelX_radar,'Point');
-                                    title(accelX_radar,'Radar-based Vs Ground-truths for X-Acceleration');
+                                    ylabel(accelX_radar,'X acceleration','FontSize', 17);
+                                    xlabel(accelX_radar,'Time (ms)','FontSize', 17);
+                                    set(gca, 'FontSize', 15);
+                                    title(accelX_radar,'Radar-based Vs Ground-truths for X-Acceleration','FontSize', 17, 'FontWeight','Normal');
                                     grid(accelX_radar,'on');
-                                    legend ('Radar detections','GroundTruth','Location','northwest');
+                                    legend ('Radar detections','GroundTruth','Location','northwest', 'FontSize', 14);
                                     
-                                    % plot the radar measurements-based y coordinates
+                                    % plot the radar measurements-based y acceleration
                                     accelY_radar = subplot(1,2,2);
                                     plot(calcAccY,'.');
                                     hold on
                                     plot(gTruth_AccY_filtered, '.');
                                     hold off
-                                    ylabel(accelY_radar,'Y acceleration');
-                                    xlabel(accelY_radar,'Point');
-                                    title(accelY_radar,'Radar-based Vs Groundtruths for Y-Acceleration');
+                                    ylabel(accelY_radar,'Y acceleration','FontSize', 17);
+                                    xlabel(accelY_radar,'Time (ms)','FontSize', 17);
+                                    set(gca, 'FontSize', 15);
+                                    title(accelY_radar,'Radar-based Vs Groundtruths for Y-Acceleration','FontSize', 17, 'FontWeight','Normal');
                                     grid(accelY_radar,'on');
-                                    legend ('Radar detections','GroundTruth','Location','northeast');
+                                    legend ('Radar detections','GroundTruth','Location','northeast', 'FontSize', 14);
                                     
                                     figure;
                                     if SurID == '0'
@@ -588,16 +668,22 @@ for Speed = Speeds
                                     hold on
                                     plot(A_GT,'-','LineWidth', 1);
                                     hold off
-                                    ylabel('Acceleration');
-                                    xlabel('point');
+                                    ylabel('Acceleration','FontSize', 17);
+                                    xlabel('Time (ms)','FontSize', 17);
+                                    set(gca, 'FontSize', 15);
                                     if SurID == '0'
-                                        title('Radar-based Vs Ground-Truths acceleration for the Target Car ');
+                                        title({'Radar-based Vs Ground-Truths', 'acceleration for the Target Car '},'FontSize', 17, 'FontWeight','Normal');
                                     else
-                                        title(['Radar-based Vs Ground-Truths acceleration for the Surround Car ', SurID]);
+                                        title([{'Radar-based Vs Ground-Truths', 'acceleration for the Surround Car '}, SurID],'FontSize', 17, 'FontWeight','Normal');
                                     end
-                                    legend ('Radar Detections','Ground-Truth','Location','northeast');
+                                    legend ('Radar Detections','Ground-Truth','Location','northeast', 'FontSize', 14);
                                     % Define path for saving the figure
-                                    FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
+                                    if Scenario ~= "Deceleration"
+                                        FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
+                                    elseif Scenario == "Deceleration"
+                                        FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\graphs\', Scenario{1},dFolder];                                        
+                                    end 
+                                    ensureFolderExists(FolderName);
                                     %[~, file]  = fileparts(filename);  % Remove extension
                                     saveas(gca, fullfile(FolderName, [Title_4, '.png']) ) % Append
                                     close all;
@@ -608,7 +694,6 @@ for Speed = Speeds
                             
                             % Read the data from the saved data file from CM
                             surCars = [];
-                            %for t = 1:(detdCars)-16000000+1
                             for t = 1:nVehIds
                                 if  ~isempty(measuredData{t,1})% Check if the vehicle is detected
                                     trajTr = [10*Time(2:end)', measurements{t,2}', measurements{t,1}', measurements{t,3}', measurements{t,4}', measurements{t,5}', measurements{t,6}',measuredData{t,2}(7,:)', ones(length(Time)-1,1)*2]; % [time, local x, local y, v_VelX, v_VelY, v_AccX, v_AccY, lane id, v_type] correspond to the Target car (always given traffic name 'T00' in CM)
@@ -728,7 +813,13 @@ for Speed = Speeds
                             
                             %% Save mat files:
                             %disp('Saving mat files...')
-                            savePath = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\matFiles\', Scenario{1},dFolder,'\',rd,'_',Param{1},'_',num2str(a)];
+                            if Scenario ~= "Deceleration"                                
+                                folderPath = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\matFiles\', Scenario{1},dFolder];
+                            elseif Scenario == "Deceleration"
+                                folderPath = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\matFiles\', Scenario{1},dFolder];                                
+                            end
+                            ensureFolderExists(folderPath);
+                            savePath = [folderPath,'\',rd,'_',Param{1},'_',num2str(a)];
                             save(savePath,'traj','tracks','tracksGndT')                            
                         end
                         
@@ -755,7 +846,13 @@ for Speed = Speeds
                         
                         %% Save mat files:
                         %disp('Saving mat files...')
-                        savePath = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\matFiles\', Scenario{1},dFolder,'\',rd,'_groundTruth'];
+                        if Scenario ~= "Deceleration"                                
+                                folderPath = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\matFiles\', Scenario{1},dFolder];
+                            elseif Scenario == "Deceleration"
+                                folderPath = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\radarData\manoeuvre_',folder,'\',Param{1},'\matFiles\', Scenario{1},dFolder];                               
+                        end
+                        ensureFolderExists(folderPath);                       
+                        savePath = [folderPath,'\',rd,'_groundTruth'];
                         save(savePath,'traj','tracks','tracksGndT');                        
                     end
                 end
@@ -876,5 +973,29 @@ traj = [ones(size(trajCM,1),1),trajCM];
 tracks = tracksCM;
 end
 
+function ensureFolderExists(path)
+    % Check if the folder exists
+    if ~exist(path, 'dir')
+        % If not, create the folder
+        mkdir(path);
+        disp(['Folder created: ', path]);
+    else        
+        disp(['Folder already exists: ', path]);
+    end
+end
+
+function createFileIfNotExists(filePath)
+    % Check if the file exists
+    if exist(filePath, 'file') ~= 2 % If the file does not exist, create an empty cell array and write it to an Excel file
+        try % Create a new Excel file (this can also handle the case where Excel is closed)            
+            writecell({}, filePath);  % Create an empty Excel file
+            disp(['File created: ', filePath]);
+        catch
+            error('File could not be created: %s', filePath);
+        end
+    else
+        disp(['File already exists: ', filePath]);
+    end
+end
 
 

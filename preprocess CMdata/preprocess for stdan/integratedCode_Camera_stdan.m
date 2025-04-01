@@ -14,12 +14,10 @@ clear;
 
 % Define possible values for each variable
 Speeds = 5; %, 10, 15]; % Add more speeds if necessary
-% Roads = {'US101', 'Straight', 'HW'}; %, 'Curve'};
-Roads = {'HW'}; %, 'Curve'};
-Dirs = {'Right', 'Left'};
-Params = {'Range', 'FoV'};
-% Scenarios = {'Infront of Ego', 'Infront of Lead'};
-Scenarios = {''};
+Roads = {'US101'}; %, 'Straight', 'HW', 'Curve'};
+Dirs = {'Right', 'Left', 'Decel'};
+Params = {'Range', 'FoV', 'Resolution'};
+Scenarios = {'Infront of Ego', 'Infront of Lead', 'Deceleration'};
 Data_imputes = {false, true};
 
 for Speed = Speeds
@@ -36,6 +34,8 @@ for Speed = Speeds
                                 folder = 'RLC';
                             case 'Left'
                                 folder = 'LLC';
+%                             case 'Decel'
+%                                 folder = 'Decel';
                         end
                         
                         switch Road{1}
@@ -74,28 +74,72 @@ for Speed = Speeds
                             case 'FoV'
                                 unit = 'deg';
                                 range_vals = 30:30:180; % FoV values for 'FoV' Param
+                            case 'Resolution'
+                                unit = 'px';
+                                range_vals = ["640x480","1280x720","1920x1080","2560x1440","3840x2160"]; % pixels for 'Resolution' Param    
                         end
                         
                         % Create an Excel file to record the number of detections
-                        filename = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\', rd, '\cameraData\manoeuvre_', folder, '\', Param{1}, '\relVel_', Spd, 'kph\matFiles\', Scenario{1},dFolder,'_No.of Detections.xlsx'];
-                        writecell(names, filename);
-                        
+                        if Scenario ~= "Deceleration"
+                            path  = ['C:\Users\gamage_a\Documents\Python\stdan-master\', rd, '\cameraData\manoeuvre_', folder, '\', Param{1}, '\relVel_', Spd, 'kph\'];
+                        else
+                            folder = 'Decel';
+                            path = ['C:\Users\gamage_a\Documents\Python\stdan-master\', rd, '\cameraData\manoeuvre_', folder, '\', Param{1}, '\'];
+                        end
+                        filename = [path,'No.of Detections.xlsx' ];
+                        ensureFolderExists(path);
+                        createFileIfNotExists(filename);                        
+                        try
+                            writecell(names, filename);
+                        catch ME
+                            disp(['Failed to write to the file: ', filename]);
+                            disp(['Error message: ', ME.message]);
+                        end                                       
+%                         
                         % Iterate through range values (for example, Range or FoV values)
                         for a = range_vals
-                            if Param{1}=="Range"
-                                if Road{1} =="US101"
-                                    readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_', Param{1}, '_', num2str(a), '.erg'];
-                                else
-                                    readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_', Param{1}, '_', num2str(a), '.erg'];
+                            if Scenario ~= "Deceleration"
+                                if Param{1}=="Range"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_', Param{1}, '_', num2str(a), '.erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_', Param{1}, '_', num2str(a), '.erg'];
+                                    end
+                                elseif Param{1}=="FoV"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_HorFoV (',num2str(a),').erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_HorFoV (',num2str(a),').erg'];
+                                    end
+                                elseif Param{1}=="Resolution"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_Res_',char(a),'.erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_Res_',char(a),'cm.erg'];
+                                    end
                                 end
-                            elseif Param{1}=="FoV"
-                                if Road{1} =="US101"
-                                    readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_',Scenario{1},'_HorFoV (',num2str(a),').erg'];
-                                else
-                                    readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\Manoeuvre_Cut in_', Dir{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\VerFoV@15deg\Scenario_', Road{1}, '_LC_', Dir{1}, '_HorFoV (',num2str(a),').erg'];
-                                end
-                            end
-                            
+                            elseif Scenario == "Deceleration"  
+                                if Param{1}=="Range"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\', Scenario{1}, '\Camera\', Param{1}, '\Scenario_', Road{1}, '_',Scenario{1},'_', Param{1}, '_', num2str(a), '.erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\', Scenario{1}, '\Camera\', Param{1}, '\Scenario_', Road{1}, '_', Param{1}, '_', num2str(a), '.erg'];
+                                    end
+                                elseif Param{1}=="FoV"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\', Scenario{1}, '\Camera\', Param{1}, '\Scenario_', Road{1}, '_',Scenario{1},'_HorFoV (',num2str(a),').erg'];
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\', Scenario{1}, '\Camera\', Param{1}, '\Scenario_', Road{1}, '_HorFoV (',num2str(a),').erg'];
+                                    end
+                                elseif Param{1}=="Resolution"
+                                    if Road{1} =="US101"
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\', Scenario{1}, '\Camera\', Param{1}, '\Scenario_', Road{1}, '_', Scenario{1},'_Res_',char(a),'.erg']; 
+                                    else
+                                        readPath = ['C:\Users\gamage_a\Documents\CM_Trail\SimOutput\WMGL241\', rd, '\', Scenario{1}, '\Camera\', Param{1}, '\RelLonVel_', Spd, 'kph\Scenario_', Road{1}, '_LC_', Dir{1}, '_Res_',char(a),'cm.erg'];
+                                    end
+                                end                                
+                            end 
+                              
                             dFile = cmread(readPath);
                             ego_xFr1 = dFile.Car_Fr1_tx.data; % Ground truth longitudinal distance
                             ego_yFr1 = dFile.Car_Fr1_ty.data; % Ground truth lateral distance
@@ -372,7 +416,7 @@ for Speed = Speeds
                                     hold off
                                     
                                     ylabel(xCord_camera,'x coordinate');
-                                    xlabel(xCord_camera,'Point');
+                                    xlabel(xCord_camera,'Time (ms)');
                                     title(xCord_camera,'Camera-based Vs Groundtruths for X coordinates');
                                     grid(xCord_camera,'on');
                                     legend ('Camera detections','GroundTruth','Location','northwest');
@@ -384,13 +428,18 @@ for Speed = Speeds
                                     plot(gTruth_y_filtered, '.');
                                     hold off
                                     ylabel(yCord_camera,'y coordinate');
-                                    xlabel(yCord_camera,'Point');
+                                    xlabel(yCord_camera,'Time (ms)');
                                     title(yCord_camera,'Camera-based Vs Groundtruths for Y coordinates');
                                     grid(yCord_camera,'on');
                                     legend ('Camera detections','GroundTruth','Location','northeast');
                                     
                                     % Define path for saving the figures
-                                    FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
+                                    if Scenario ~= "Deceleration"
+                                        FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];                                        
+                                    elseif Scenario == "Deceleration"                                        
+                                        FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\graphs\', Scenario{1},dFolder];                                                                              
+                                    end                                     
+                                    ensureFolderExists(FolderName);                                    
                                     %[~, file]  = fileparts(filename);  % Remove extension
                                     saveas(gca, fullfile(FolderName, [Title_1, '.png']) ) % Append
                                     close all;
@@ -407,19 +456,18 @@ for Speed = Speeds
                                     hold on
                                     plot(gTruth_x_filtered,gTruth_y_filtered,'-','LineWidth', 1);
                                     hold off
-                                    ylabel('y coordinate');
-                                    xlabel('x coordinate');
+                                    ylabel('y coordinate','FontSize', 17);
+                                    xlabel('x coordinate','FontSize', 17);
+                                    set(gca, 'FontSize', 15);
                                     if TrfID == '0'
-                                        title('Camera Detections Vs Ground-Truths for the Target Car ');
+                                        title({'Camera Detections Vs Ground-Truths', 'for the Target Car '},'FontSize', 17, 'FontWeight','Normal' );
                                     else
-                                        title(['Camera Detections Vs Ground-Truths for the Surround Car ', TrfID]);
+                                        title([{'Camera Detections Vs Ground-Truths',' for the Surround Car '}, TrfID],'FontSize', 17, 'FontWeight','Normal');
                                     end
                                     grid('on');
-                                    legend ('Camera Detections','Ground-Truth','Location','northeast');
+                                    legend ('Camera Detections','Ground-Truth','Location','northeast','FontSize', 14);
                                     
                                     % Define path for saving the figure
-                                    FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
-                                    %[~, file]  = fileparts(filename);  % Remove extension
                                     saveas(gca, fullfile(FolderName, [Title_2, '.png']) ) % Append
                                     close all;
                                     
@@ -447,7 +495,8 @@ for Speed = Speeds
                                     plot(gTruth_VelX_filtered, '.');
                                     hold off
                                     ylabel(velX_camera,'X velocity');
-                                    xlabel(velX_camera,'Point');
+                                    xlabel(velX_camera,'Time (ms)');
+                                    set(gca, 'FontSize', 15);
                                     title(velX_camera,'Camera-based Vs Ground-truths for X-Velocity');
                                     grid(velX_camera,'on');
                                     legend ('Camera detections','GroundTruth','Location','northwest');
@@ -461,7 +510,8 @@ for Speed = Speeds
                                     plot(gTruth_VelY_filtered, '.');
                                     hold off
                                     ylabel(velY_camera,'Y velocity');
-                                    xlabel(velY_camera,'Point');
+                                    xlabel(velY_camera,'Time (ms)');
+                                    set(gca, 'FontSize', 15);
                                     title(velY_camera,'Camera-based Vs Ground-truths for Y-Velocity');
                                     grid(velY_camera,'on');
                                     legend ('Camera detections','GroundTruth','Location','northeast');
@@ -477,23 +527,21 @@ for Speed = Speeds
                                     V_GT = sqrt(gTruth_VelX_filtered.^2+gTruth_VelY_filtered.^2);
                                     
                                     plot(V_cam, '^','MarkerSize',1.5, 'LineWidth', 1.5);
-                                    %             axis ([0 600 15 30]);
                                     hold on
                                     plot(V_GT,'-','LineWidth', 1);
                                     hold off
                                     
-                                    ylabel('Velocity');
-                                    xlabel('point');
+                                    ylabel('Velocity','FontSize', 17);
+                                    xlabel('Time (ms)','FontSize', 17);
+                                    set(gca, 'FontSize', 15);
                                     if TrfID == '0'
-                                        title('Camera-based Vs Ground-Truths velocity for the Target Car ');
+                                        title({'Camera-based Vs Ground-Truths', 'velocity for the Target Car '},'FontSize', 17, 'FontWeight','Normal');
                                     else
-                                        title(['Camera-based Vs Ground-Truths velocity for the Surround Car ', TrfID]);
+                                        title([{'Camera-based Vs Ground-Truths',' velocity for the Surround Car '}, TrfID],'FontSize', 17, 'FontWeight','Normal');
                                     end
-                                    legend ('Camera Detections','Ground-Truth','Location','northeast');
+                                    legend ('Camera Detections','Ground-Truth','Location','northeast','FontSize', 14);
                                     
                                     % Define path for saving the figure
-                                    FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
-                                    %[~, file]  = fileparts(filename);  % Remove extension
                                     saveas(gca, fullfile(FolderName, [Title_3, '.png']) ) % Append
                                     close all;
                                     
@@ -520,7 +568,8 @@ for Speed = Speeds
                                     plot(gTruth_AccX_filtered, '.');
                                     hold off
                                     ylabel(accelX_camera,'X acceleration');
-                                    xlabel(accelX_camera,'Point');
+                                    xlabel(accelX_camera,'Time (ms)');
+                                    set(gca, 'FontSize', 15);
                                     title(accelX_camera,'Camera-based Vs Ground-truths for X-Acceleration');
                                     grid(accelX_camera,'on');
                                     legend ('Camera detections','GroundTruth','Location','northwest');
@@ -532,7 +581,8 @@ for Speed = Speeds
                                     plot(gTruth_AccY_filtered, '.');
                                     hold off
                                     ylabel(accelY_camera,'Y acceleration');
-                                    xlabel(accelY_camera,'Point');
+                                    xlabel(accelY_camera,'Time (ms)');
+                                    set(gca, 'FontSize', 15);
                                     title(accelY_camera,'Camera-based Vs Groundtruths for Y-Acceleration');
                                     grid(accelY_camera,'on');
                                     legend ('Camera detections','GroundTruth','Location','northeast');
@@ -550,17 +600,16 @@ for Speed = Speeds
                                     hold on
                                     plot(A_GT,'-','LineWidth', 1);
                                     hold off
-                                    ylabel('Acceleration');
-                                    xlabel('point');
+                                    ylabel('Acceleration','FontSize', 17);
+                                    xlabel('Time (ms)','FontSize', 17);
+                                    set(gca, 'FontSize', 15);
                                     if TrfID == '0'
-                                        title('Camera-based Vs Ground-Truths acceleration for the Target Car ');
+                                        title({'Camera-based Vs Ground-Truths',' acceleration for the Target Car '},'FontSize', 17, 'FontWeight','Normal');
                                     else
-                                        title(['Camera-based Vs Ground-Truths acceleration for the Surround Car ', TrfID]);
+                                        title([{'Camera-based Vs Ground-Truths', 'acceleration for the Surround Car '}, TrfID],'FontSize', 17, 'FontWeight','Normal');
                                     end
-                                    legend ('Camera Detections','Ground-Truth','Location','northeast');
+                                    legend ('Camera Detections','Ground-Truth','Location','northeast','FontSize', 14);
                                     % Define path for saving the figure
-                                    FolderName = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\graphs\', Scenario{1},dFolder];
-                                    %[~, file]  = fileparts(filename);  % Remove extension
                                     saveas(gca, fullfile(FolderName, [Title_4, '.png']) ) % Append
                                     close all;
                                 end
@@ -693,12 +742,16 @@ for Speed = Speeds
                             
                             %% Save mat files:
                             %disp('Saving mat files...')
-                            savePath = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\matFiles\', Scenario{1},dFolder,'\',rd,'_',Param{1},'_',num2str(a)];
-                            %     savePath = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\Range\relVel_',Spd,'kph\matFiles\',rd,'_Range_',num2str(a),' occluded'];
+                            if Scenario ~= "Deceleration"
+                                folderPath = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\matFiles\', Scenario{1},dFolder];                                                           
+                            elseif Scenario == "Deceleration"
+                                folderPath = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\matFiles\', Scenario{1},dFolder];                                
+                            end
+                            ensureFolderExists(folderPath);
+                            savePath = [folderPath,'\',rd,'_',Param{1},'_',num2str(a)];
                             save(savePath,'traj','tracks','tracksGndT')
-                            
-                            
                         end
+                        
                         %% Script for generating the traj data file for the STDAN model using CM based ground-truth data
                         
                         % Read the data from the saved data file from CM
@@ -720,11 +773,16 @@ for Speed = Speeds
                         trajAllGT = [trajSurGT; trajTarGT(:,1:end-1)];
                         
                         [traj, tracks] = CMinputs(trajTarGT, trajSurGT, trajAllGT);
-                        %tracksGndT = tracks;
+                        
                         %% Save mat files:
                         %disp('Saving mat files...')
-                        savePath = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\matFiles\', Scenario{1},dFolder,'\',rd,'_groundTruth'];
-                        % savePath = ['C:\Users\gamage_a\Documents\Python\conv-social-pooling-master\',rd,'\cameraData\manoeuvre_',folder,'\Range\relVel_',Spd,'kph\matFiles\',rd,'_groundTruth occluded'];
+                        if Scenario ~= "Deceleration"
+                            folderPath = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\relVel_',Spd,'kph\matFiles\', Scenario{1},dFolder];                                                       
+                        elseif Scenario == "Deceleration"
+                            folderPath = ['C:\Users\gamage_a\Documents\Python\stdan-master\',rd,'\cameraData\manoeuvre_',folder,'\',Param{1},'\matFiles\', Scenario{1},dFolder];                                
+                        end 
+                        ensureFolderExists(folderPath);                       
+                        savePath = [folderPath,'\',rd,'_groundTruth'];
                         save(savePath,'traj','tracks','tracksGndT');
                     end                    
                 end
@@ -857,4 +915,29 @@ traj = [ones(size(trajCM,1),1),trajCM]; % Add a Dataset ID as first column as ex
 tracks = tracksCM;
 end
 
+
+function ensureFolderExists(path)
+    % Check if the folder exists
+    if ~exist(path, 'dir')
+        % If not, create the folder
+        mkdir(path);
+        disp(['Folder created: ', path]);
+    else        
+        disp(['Folder already exists: ', path]);
+    end
+end
+
+function createFileIfNotExists(filePath)    
+    % Check if the file exists
+    if exist(filePath, 'file') ~= 2 % If the file does not exist, create an empty cell array and write it to an Excel file
+        try % Create a new Excel file (this can also handle the case where Excel is closed)
+            writecell({}, filePath);  % Create an empty Excel file
+            disp(['File created: ', filePath]);
+        catch
+            error('File could not be created: %s', filePath);
+        end
+    else
+        disp(['File already exists: ', filePath]);
+    end
+end
 
